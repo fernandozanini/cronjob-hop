@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-credentials
+  namespace: test-project
+type: Opaque
+stringData:
+  GIT_USERNAME: "dg-git-ro"        # nome do token criado no projeto GitLab
+  GIT_PASSWORD: "glpat-3KITH2ns4CBy_N3kxIOs6m86MQp1OjgH.01.0w1mjkjd8"  # valor do token gerado

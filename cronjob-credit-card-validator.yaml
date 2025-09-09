@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-credit-card-validator
+  namespace: test-project
+spec:
+  schedule: "*/5 * * * *"   # Executa a cada 5 minutos
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          initContainers:
+            - name: git-clone-or-pull
+              image: alpine/git:latest
+              imagePullPolicy: Always
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  # O comando 'git config --global http.sslVerify false' não é mais necessário.
+                  # Apenas a configuração de 'safe.directory' é útil.
+                  git config --global --add safe.directory /project-data
+
+                  echo "Clonando o repositório (verificação SSL desabilitada )..."
+                  #git clone https://gitlab.apps-crc.testing/root/simple-app.git /project-data
+                  git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@gitlab.apps-crc.testing/root/simple-app.git /project-data
+              envFrom:
+                - secretRef:
+                    name: gitlab-credentials
+              env:
+                - name: GIT_SSL_NO_VERIFY
+                  value: "true"
+              volumeMounts:
+                - name: project-source
+                  mountPath: /project-data
+          containers:
+            - name: hop-executor
+              image: apache/hop:2.14.0
+              imagePullPolicy: IfNotPresent
+              command: ["/opt/hop/hop-run.sh"]
+              args:
+                - "-f=/project-data/projects/transforms/credit-card-validator.hpl"
+                - "-r=local"
+                - "-j=samples"
+                - "-p=HOP_PROJECT_FOLDER=/project-data"
+              volumeMounts:
+                - name: project-source
+                  mountPath: /project-data
+          serviceAccountName: dg-sa
+          volumes:
+            - name: project-source
+              emptyDir: {}
