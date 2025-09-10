@@ -40,6 +40,14 @@ spec:
             - name: hop-executor
               image: apache/hop:2.14.0
               imagePullPolicy: IfNotPresent
+              env:
+                 - name: HOP_SHARED_JDBC_FOLDERS
+                   value: "/opt/hop/:/project-data/jdbc"
+             
+            # Aponta para a pasta de configuração global clonada do Git
+                 - name: HOP_CONFIG_FOLDER
+                   value: "/project-data/config"
+
               command: ["/opt/hop/hop-run.sh"]
               args:
                 - "-f=/project-data/projects/transforms/credit-card-validator.hpl"
